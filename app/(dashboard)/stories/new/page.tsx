@@ -10,6 +10,9 @@ export default function NewStoryPage() {
   const [step, setStep] = useState<"mode" | "details">("mode");
   const [writerMode, setWriterMode] = useState<"typeA" | "typeB">("typeA");
   const [form, setForm] = useState({ title: "", genre: "", subGenre: "", platformId: "", targetChapters: 200, synopsis: "" });
+  const [existingOutline, setExistingOutline] = useState("");
+  const [hasExistingChapters, setHasExistingChapters] = useState(false);
+  const [existingChapters, setExistingChapters] = useState("");
 
   const { data: platforms } = trpc.platforms.list.useQuery();
   const create = trpc.stories.create.useMutation({
@@ -68,7 +71,7 @@ export default function NewStoryPage() {
         className="space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
-          create.mutate({ ...form, writerMode });
+          create.mutate({ ...form, writerMode, existingOutline, existingChapters: hasExistingChapters ? existingChapters : "" });
         }}
       >
         <div className="space-y-1.5">
@@ -142,6 +145,61 @@ export default function NewStoryPage() {
             onChange={(e) => setForm({ ...form, synopsis: e.target.value })}
           />
         </div>
+
+        {/* ── Writer B extra fields ── */}
+        {writerMode === "typeB" && (
+          <div className="space-y-5 pt-2 border-t border-gray-800">
+            <p className="text-xs text-violet-400 uppercase tracking-wider font-semibold">Your Existing Material</p>
+
+            {/* Outline */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-300">
+                Your Story Outline <span className="text-gray-600">(optional)</span>
+              </label>
+              <textarea
+                rows={8}
+                className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-violet-500 focus:outline-none text-white placeholder-gray-500 resize-none text-sm leading-relaxed"
+                placeholder={`Paste your full outline here — arc descriptions, chapter summaries, plot points, character arcs. Any format is fine.\n\nExample:\nArc 1: Elena discovers she's been replaced at work...\nChapter 1: Elena walks in on her own replacement meeting...\nChapter 2: She decides to fight back...`}
+                value={existingOutline}
+                onChange={(e) => setExistingOutline(e.target.value)}
+              />
+              <p className="text-xs text-gray-600">The AI will use this as the blueprint for every chapter it generates.</p>
+            </div>
+
+            {/* Existing chapters toggle */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setHasExistingChapters(!hasExistingChapters)}
+                className={`flex items-center gap-3 w-full p-4 rounded-xl border transition-all text-left ${hasExistingChapters ? "border-violet-600 bg-violet-950/30" : "border-gray-700 bg-gray-900 hover:border-gray-600"}`}
+              >
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${hasExistingChapters ? "border-violet-500 bg-violet-500" : "border-gray-600"}`}>
+                  {hasExistingChapters && <span className="text-white text-xs">✓</span>}
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">I have chapters already written</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Paste them in — the platform will import them and continue from where you stopped</div>
+                </div>
+              </button>
+
+              {hasExistingChapters && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-300">Paste Your Existing Chapters</label>
+                  <textarea
+                    rows={12}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-violet-500 focus:outline-none text-white placeholder-gray-500 resize-none text-sm leading-relaxed font-mono"
+                    placeholder={`Start each chapter with "Chapter 1", "Chapter 2", etc. on its own line, then paste the chapter content below it.\n\nChapter 1\nElena had rehearsed this moment a hundred times...\n\nChapter 2\nThe boardroom was already full when she arrived...`}
+                    value={existingChapters}
+                    onChange={(e) => setExistingChapters(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-600">
+                    Each chapter must start with <span className="text-gray-400">Chapter N</span> on its own line. All pasted chapters will be marked as approved and the platform will continue from the next chapter.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <button
           type="submit"

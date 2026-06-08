@@ -10,7 +10,33 @@ const StoryCreateInput = z.object({
   targetChapters: z.number().int().min(50).default(200),
   synopsis: z.string().default(""),
   submissionPackage: z.string().default(""),
+  existingOutline: z.string().default(""),
+  existingChapters: z.string().default(""),
 });
+
+function parseExistingChapters(text: string): Array<{ chapterNumber: number; content: string; wordCount: number }> {
+  const lines = text.split("\n");
+  const chapters: Array<{ chapterNumber: number; content: string; wordCount: number }> = [];
+  let current: { number: number; lines: string[] } | null = null;
+
+  for (const line of lines) {
+    const match = line.match(/^\s*chapter\s+(\d+)/i);
+    if (match) {
+      if (current) {
+        const content = current.lines.join("\n").trim();
+        if (content) chapters.push({ chapterNumber: current.number, content, wordCount: content.split(/\s+/).filter(Boolean).length });
+      }
+      current = { number: parseInt(match[1]), lines: [] };
+    } else if (current) {
+      current.lines.push(line);
+    }
+  }
+  if (current) {
+    const content = current.lines.join("\n").trim();
+    if (content) chapters.push({ chapterNumber: current.number, content, wordCount: content.split(/\s+/).filter(Boolean).length });
+  }
+  return chapters;
+}
 
 export const storiesRouter = router({
   list: publicProcedure.query(({ ctx }) =>
@@ -57,9 +83,39 @@ export const storiesRouter = router({
 
   create: publicProcedure
     .input(StoryCreateInput)
-    .mutation(({ ctx, input }) =>
-      ctx.prisma.story.create({ data: input, include: { platform: true } })
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const { existingOutline, existingChapters, ...storyData } = input;
+      // Use outline as synopsis if no synopsis provided
+      if (!storyData.synopsis && existingOutline) storyData.synopsis = existingOutline;
+
+      const story = await ctx.prisma.story.create({
+        data: storyData,
+        include: { platform: true },
+      });
+
+      // Parse and create any pasted existing chapters
+      if (existingChapters.trim()) {
+        const parsed = parseExistingChapters(existingChapters);
+        if (parsed.length > 0) {
+          await ctx.prisma.chapter.createMany({
+            data: parsed.map((ch) => ({
+              storyId: story.id,
+              chapterNumber: ch.chapterNumber,
+              title: `Chapter ${ch.chapterNumber}`,
+              content: ch.content,
+              wordCount: ch.wordCount,
+              status: "approved",
+            })),
+          });
+          await ctx.prisma.story.update({
+            where: { id: story.id },
+            data: { status: "writing" },
+          });
+        }
+      }
+
+      return story;
+    }),
 
   update: publicProcedure
     .input(z.object({ id: z.string(), data: StoryCreateInput.partial() }))
