@@ -1,0 +1,182 @@
+import path from "path";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { PrismaClient } from "../app/generated/prisma/client";
+
+const dbPath = path.resolve(__dirname, "../dev.db");
+const adapter = new PrismaLibSql({ url: `file:${dbPath}` });
+const prisma = new PrismaClient({ adapter } as any);
+
+async function main() {
+  const platforms = [
+    {
+      name: "GoodNovel",
+      slug: "goodnovel",
+      minChapterWords: 1000,
+      targetChapterWords: 1200,
+      maxChapterWords: 2000,
+      minChapters: 100,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "Urban", "Fantasy", "Werewolf", "CEO/Billionaire", "Revenge", "Paranormal"]),
+      paceProfile: "fast-open",
+      hookIntensity: "high",
+      submissionNotes: "Strong chapter hooks required. Romance and urban fiction dominate. First 10 chapters must establish the central conflict and relationship tension clearly.",
+    },
+    {
+      name: "WebNovel",
+      slug: "webnovel",
+      minChapterWords: 1000,
+      targetChapterWords: 1500,
+      maxChapterWords: 3000,
+      minChapters: 200,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Fantasy", "Eastern Fantasy", "Sci-fi", "Romance", "Action", "Martial Arts", "System", "Isekai"]),
+      paceProfile: "fast-open",
+      hookIntensity: "very-high",
+      submissionNotes: "Power progression systems are strongly favored. Readers expect rapid leveling, skill acquisition, or status-screen mechanics in fantasy. Each chapter should end with a strong revelation or power moment.",
+    },
+    {
+      name: "Dreame",
+      slug: "dreame",
+      minChapterWords: 1000,
+      targetChapterWords: 1200,
+      maxChapterWords: 2000,
+      minChapters: 100,
+      contentRating: "R",
+      allowedGenres: JSON.stringify(["Romance", "Werewolf", "Mafia", "Billionaire", "Forbidden Love", "Revenge", "Dark Romance"]),
+      paceProfile: "fast-open",
+      hookIntensity: "high",
+      submissionNotes: "Dreame readers expect emotional intensity from the opening chapter. Alpha male / strong female lead dynamics are very popular. Dark romance and forbidden relationships perform especially well.",
+    },
+    {
+      name: "Pocket FM",
+      slug: "pocket-fm",
+      minChapterWords: 800,
+      targetChapterWords: 1000,
+      maxChapterWords: 1500,
+      minChapters: 200,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "Drama", "Thriller", "Family", "Revenge", "Second Chance"]),
+      paceProfile: "fast-open",
+      hookIntensity: "very-high",
+      submissionNotes: "Pocket FM is audio-first — chapters must be written to sound natural when read aloud. Short, punchy sentences. Emotional beats must be explicit and clear. Every chapter must end on a compelling cliffhanger or revelation.",
+    },
+    {
+      name: "Inkitt / Galatea",
+      slug: "galatea",
+      minChapterWords: 1000,
+      targetChapterWords: 1300,
+      maxChapterWords: 2500,
+      minChapters: 80,
+      contentRating: "R",
+      allowedGenres: JSON.stringify(["Werewolf", "Paranormal Romance", "Fantasy Romance", "Dark Romance", "Billionaire"]),
+      paceProfile: "slow-burn",
+      hookIntensity: "medium",
+      submissionNotes: "Galatea readers appreciate deeper world-building and slower romantic tension builds. Quality of prose is weighted more than raw hook intensity. Strong character development across arcs is rewarded.",
+    },
+    {
+      name: "NovelSnack",
+      slug: "novelsnack",
+      minChapterWords: 800,
+      targetChapterWords: 1000,
+      maxChapterWords: 1500,
+      minChapters: 100,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "CEO/Billionaire", "Werewolf", "Mafia", "Revenge", "Forbidden Love", "Second Chance", "Paranormal"]),
+      paceProfile: "fast-open",
+      hookIntensity: "very-high",
+      submissionNotes: "NovelSnack is built for 'snackable' fiction — short, punchy chapters that readers consume in under 5 minutes. Every chapter must hook immediately in the first sentence and end on a cliffhanger or emotional gut-punch that forces the next tap. The platform targets female readers in romance and dark romance. CEO, billionaire, werewolf alpha, and mafia genres perform best. Chapters are intentionally brief — quality of hook outweighs length. The reader should never feel a chapter ended at a natural stopping point.",
+    },
+    {
+      name: "MoboReader",
+      slug: "moboreader",
+      minChapterWords: 1000,
+      targetChapterWords: 1500,
+      maxChapterWords: 3000,
+      minChapters: 100,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "Urban", "Fantasy", "Werewolf", "CEO/Billionaire", "Action", "Revenge", "Paranormal"]),
+      paceProfile: "fast-open",
+      hookIntensity: "high",
+      submissionNotes: "MoboReader operates globally across multiple languages and regions. Stories must hook readers within the first 3 chapters or conversion drops sharply. Romance and urban fiction with strong alpha leads dominate. Each chapter should end with unresolved tension — a question, a threat, or a revelation that cannot wait. Fast escalation of the central conflict is expected.",
+    },
+    {
+      name: "iStory",
+      slug: "istory",
+      minChapterWords: 800,
+      targetChapterWords: 1000,
+      maxChapterWords: 1500,
+      minChapters: 80,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "Drama", "Mystery", "Thriller", "Family", "Revenge", "Second Chance"]),
+      paceProfile: "fast-open",
+      hookIntensity: "high",
+      submissionNotes: "iStory favors emotionally immediate, character-driven storytelling. Chapters are short and must open mid-emotion — readers expect to feel something within the first paragraph. Strong female protagonists with relatable emotional struggles perform best. Every chapter ending should create urgency for the next. Drama, emotional betrayal, and unexpected revelations drive retention.",
+    },
+    {
+      name: "Ringdom",
+      slug: "ringdom",
+      minChapterWords: 1000,
+      targetChapterWords: 1200,
+      maxChapterWords: 2000,
+      minChapters: 100,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "Fantasy", "Werewolf", "CEO/Billionaire", "Revenge", "Urban", "Paranormal", "Forbidden Love"]),
+      paceProfile: "fast-open",
+      hookIntensity: "high",
+      submissionNotes: "Ringdom readers expect consistent emotional tension and powerful romantic chemistry from the opening chapter. The central relationship must be established with immediate friction — attraction with an obstacle. Werewolf, billionaire, and revenge romance perform especially well. Chapters must end on a note that makes the reader unable to stop at a natural break.",
+    },
+    {
+      name: "MegaNovel",
+      slug: "meganovel",
+      minChapterWords: 1000,
+      targetChapterWords: 1200,
+      maxChapterWords: 2000,
+      minChapters: 100,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "Fantasy", "Action", "Urban", "Werewolf", "CEO/Billionaire", "Revenge", "Sci-fi"]),
+      paceProfile: "fast-open",
+      hookIntensity: "high",
+      submissionNotes: "MegaNovel operates with a model similar to GoodNovel, emphasizing fast romantic escalation, strong leads, and chapter-ending hooks that drive premium conversion. The first 10 chapters must establish the protagonist's core wound, the central relationship tension, and the primary conflict clearly. Romance with action subplots and revenge arcs perform particularly well.",
+    },
+    {
+      name: "LetterLux",
+      slug: "letterlux",
+      minChapterWords: 1000,
+      targetChapterWords: 1300,
+      maxChapterWords: 2000,
+      minChapters: 80,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "Drama", "Thriller", "Fantasy", "Mystery", "Literary Fiction", "Second Chance"]),
+      paceProfile: "balanced",
+      hookIntensity: "medium",
+      submissionNotes: "LetterLux positions itself as a premium fiction destination where prose quality is rewarded alongside compelling hooks. Readers here have a higher tolerance for emotional nuance and slower tension builds, but still expect every chapter to advance the story meaningfully. Strong character interiority and layered dialogue are valued. The central emotional conflict should be established clearly by chapter 3.",
+    },
+    {
+      name: "Stary Writing",
+      slug: "stary-writing",
+      minChapterWords: 1000,
+      targetChapterWords: 1200,
+      maxChapterWords: 2000,
+      minChapters: 100,
+      contentRating: "PG-13",
+      allowedGenres: JSON.stringify(["Romance", "Fantasy", "Drama", "Werewolf", "CEO/Billionaire", "Paranormal", "Forbidden Love", "Dark Romance"]),
+      paceProfile: "fast-open",
+      hookIntensity: "high",
+      submissionNotes: "Stary Writing is a mobile-first platform with a young, highly engaged reader base. Romance and fantasy dominate, with werewolf and billionaire romance being the top-performing subgenres. Chapter hooks must be emotionally immediate and visceral — the reader must feel the pull of the story within the first paragraph. Strong, emotionally driven female protagonists and intense romantic chemistry from the first meeting are expected.",
+    },
+  ];
+
+  for (const p of platforms) {
+    await prisma.platform.upsert({
+      where: { slug: p.slug },
+      update: p,
+      create: p,
+    });
+  }
+
+  console.log(`Seeded ${platforms.length} platforms.`);
+}
+
+main()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());

@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── Platform reference data ──────────────────────────────────────────────────
+
+model Platform {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  slug                String   @unique
+  minChapterWords     Int      @default(1000)
+  targetChapterWords  Int      @default(1200)
+  maxChapterWords     Int      @default(2000)
+  minChapters         Int      @default(100)
+  contentRating       String   @default("PG-13")
+  allowedGenres       String   // JSON array
+  paceProfile         String   @default("fast-open") // fast-open | slow-burn | balanced
+  hookIntensity       String   @default("high")
+  submissionNotes     String   @default("")
+  stories             Story[]
+  createdAt           DateTime @default(now())
+}
+
+// ─── Core story entity ────────────────────────────────────────────────────────
+
+model Story {
+  id              String        @id @default(cuid())
+  title           String
+  tagline         String        @default("")
+  genre           String
+  subGenre        String        @default("")
+  status          String        @default("drafting") // idea | drafting | writing | complete | submitted
+  writerMode      String        @default("typeA")    // typeA | typeB
+  targetChapters  Int           @default(200)
+  platformId      String
+  platform        Platform      @relation(fields: [platformId], references: [id])
+  voiceProfile    VoiceProfile?
+  arcs            Arc[]
+  chapterOutlines ChapterOutline[]
+  chapters        Chapter[]
+  characters      Character[]
+  plotThreads     PlotThread[]
+  worldElements   WorldElement[]
+  hookLog         HookLog[]
+  ideaCandidates  IdeaCandidate[]
+  writingSessions WritingSession[]
+  translations    ChapterTranslation[]
+  feedbackNotes   StoryFeedback[]
+  storyBible      StoryBible?
+  synopsis        String        @default("")
+  submissionPackage String      @default("") // JSON
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+// ─── Module 1 — Idea candidates ───────────────────────────────────────────────
+
+model IdeaCandidate {
+  id              String   @id @default(cuid())
+  storyId         String?
+  story           Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  genre           String
+  premise         String
+  emotionalHook   String
+  centralConflict String
+  protagonistWound String
+  longRunwayScore Int      @default(0) // 0-100 viability for 200+ chapters
+  viabilityNotes  String   @default("")
+  selected        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+// ─── Module 2 — Voice & style calibration ─────────────────────────────────────
+
+model VoiceProfile {
+  id               String   @id @default(cuid())
+  storyId          String   @unique
+  story            Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  writingStyle     String   @default("cinematic")   // cinematic | intimate-first | dramatic-third | action-forward | slow-burn
+  dialogueIntensity String  @default("medium")      // low | medium | high
+  descriptionDensity String @default("medium")      // sparse | medium | rich
+  toneRegister     String   @default("intense")     // dark-gritty | warm-light | intense | suspense
+  sampleText       String   @default("")
+  systemPromptSnippet String @default("")           // compiled from above fields
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// ─── Module 3 — Multi-arc plot architecture ───────────────────────────────────
+
+model Arc {
+  id             String           @id @default(cuid())
+  storyId        String
+  story          Story            @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  order          Int
+  name           String
+  summary        String
+  emotionalArc   String           @default("")
+  startChapter   Int
+  endChapter     Int
+  status         String           @default("planned") // planned | writing | complete
+  chapterOutlines ChapterOutline[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+// ─── Module 4 — Chapter-by-chapter outline ────────────────────────────────────
+
+model ChapterOutline {
+  id              String    @id @default(cuid())
+  storyId         String
+  story           Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  arcId           String?
+  arc             Arc?      @relation(fields: [arcId], references: [id])
+  chapterNumber   Int
+  title           String    @default("")
+  sceneSummary    String
+  location        String    @default("")
+  charactersPresent String  @default("") // JSON array
+  emotionalBeat   String    @default("")
+  revelations     String    @default("") // what is revealed
+  withheld        String    @default("") // what is withheld
+  arcAdvancement  String    @default("")
+  hookType        String    @default("") // revelation | confrontation | gut-punch | danger | mystery | arrival
+  hookDescription String    @default("")
+  wordCountTarget Int       @default(1200)
+  approved        Boolean   @default(false)
+  chapter         Chapter?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([storyId, chapterNumber])
+}
+
+// ─── Module 5 — Written chapters ─────────────────────────────────────────────
+
+model Chapter {
+  id              String         @id @default(cuid())
+  storyId         String
+  story           Story          @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  outlineId       String?        @unique
+  outline         ChapterOutline? @relation(fields: [outlineId], references: [id])
+  chapterNumber   Int
+  title           String         @default("")
+  content         String         @default("")
+  wordCount       Int            @default(0)
+  status          String         @default("pending") // pending | generating | draft | revised | approved
+  revisionNotes   String         @default("")
+  consistencyFlags String        @default("[]") // JSON array of flag objects
+  hookScore       Int            @default(0)    // 0-100
+  hookType        String         @default("")
+  generationMeta  String         @default("{}") // JSON: model, tokens, duration
+  translations    ChapterTranslation[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([storyId, chapterNumber])
+}
+
+// ─── Translation layer ────────────────────────────────────────────────────────
+
+model ChapterTranslation {
+  id             String   @id @default(cuid())
+  storyId        String
+  story          Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  chapterId      String
+  chapter        Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterNumber  Int
+  sourceLanguage String   @default("English")
+  targetLanguage String
+  content        String
+  wordCount      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([chapterId, targetLanguage])
+  @@index([storyId, targetLanguage])
+}
+
+// ─── Module 6 — Story Bible (consistency engine) ──────────────────────────────
+
+model StoryBible {
+  id          String   @id @default(cuid())
+  storyId     String   @unique
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  summary     String   @default("") // running story summary updated per chapter
+  lastUpdatedChapter Int @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Character {
+  id               String   @id @default(cuid())
+  storyId          String
+  story            Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  name             String
+  role             String   @default("supporting") // protagonist | antagonist | supporting | minor
+  physicalDesc     String   @default("")
+  speechPatterns   String   @default("")
+  mannerisms       String   @default("")
+  backstory        String   @default("")
+  wounds           String   @default("")           // emotional wounds
+  currentArc       String   @default("")           // where they are in their character arc
+  introducedChapter Int     @default(1)
+  lastSeenChapter  Int      @default(1)
+  statusHistory    String   @default("[]")          // JSON: [{chapter, status, notes}]
+  relationshipsOut CharacterRelationship[] @relation("CharFrom")
+  relationshipsIn  CharacterRelationship[] @relation("CharTo")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model CharacterRelationship {
+  id            String    @id @default(cuid())
+  fromCharId    String
+  toCharId      String
+  fromChar      Character @relation("CharFrom", fields: [fromCharId], references: [id], onDelete: Cascade)
+  toChar        Character @relation("CharTo",   fields: [toCharId],   references: [id], onDelete: Cascade)
+  relationshipType String @default("neutral")  // romantic | rival | ally | family | enemy | mentor
+  currentState  String    @default("")          // description of current state
+  history       String    @default("[]")        // JSON: [{chapter, event}]
+  updatedAt     DateTime  @updatedAt
+}
+
+model PlotThread {
+  id              String   @id @default(cuid())
+  storyId         String
+  story           Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  title           String
+  description     String
+  openedChapter   Int
+  resolvedChapter Int?
+  status          String   @default("open") // open | resolved | dangling
+  lastMentionedChapter Int @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model WorldElement {
+  id          String   @id @default(cuid())
+  storyId     String
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  category    String   @default("location") // location | rule | hierarchy | organization | lore
+  name        String
+  description String
+  firstMentionedChapter Int @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Module 8 — Hook log (anti-repetition) ────────────────────────────────────
+
+model HookLog {
+  id            String   @id @default(cuid())
+  storyId       String
+  story         Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  chapterNumber Int
+  hookType      String
+  hookSummary   String   @default("")
+  createdAt     DateTime @default(now())
+}
+
+// ─── Feedback & correction notes ─────────────────────────────────────────────
+
+model StoryFeedback {
+  id            String   @id @default(cuid())
+  storyId       String
+  story         Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  scope         String   @default("story")   // story | plot | chapter
+  chapterNumber Int?                          // set only for chapter-scope
+  category      String   @default("general") // voice | pacing | character | plot | hook | emotion | dialogue | structure | rejection
+  feedback      String
+  severity      String   @default("medium")  // high | medium | low
+  resolved      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([storyId, resolved])
+}
+
+// ─── Module 13 — Writing sessions (progress tracker) ─────────────────────────
+
+model WritingSession {
+  id          String   @id @default(cuid())
+  storyId     String
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  chaptersWritten Int  @default(0)
+  wordsProduced   Int  @default(0)
+  durationMinutes Int  @default(0)
+  sessionDate DateTime @default(now())
+}
