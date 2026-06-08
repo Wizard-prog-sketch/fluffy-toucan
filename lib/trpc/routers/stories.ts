@@ -12,7 +12,58 @@ const StoryCreateInput = z.object({
   submissionPackage: z.string().default(""),
   existingOutline: z.string().default(""),
   existingChapters: z.string().default(""),
+  chapterByChapterOutline: z.string().default(""),
 });
+
+function parseChapterOutlines(text: string): Array<{ chapterNumber: number; sceneSummary: string; emotionalBeat: string; hookType: string }> {
+  const lines = text.split("\n");
+  const outlines: Array<{ chapterNumber: number; sceneSummary: string; emotionalBeat: string; hookType: string }> = [];
+  let current: { number: number; lines: string[] } | null = null;
+
+  for (const line of lines) {
+    const match = line.match(/^\s*chapter\s+(\d+)/i);
+    if (match) {
+      if (current) {
+        const body = current.lines.join("\n").trim();
+        if (body) {
+          const emotionalMatch = body.match(/emotional\s*beat\s*[:\-]\s*(.+)/i);
+          const hookMatch = body.match(/hook\s*[:\-]\s*(.+)/i);
+          const sceneSummary = body
+            .replace(/emotional\s*beat\s*[:\-]\s*.+/i, "")
+            .replace(/hook\s*[:\-]\s*.+/i, "")
+            .trim();
+          outlines.push({
+            chapterNumber: current.number,
+            sceneSummary: sceneSummary || body,
+            emotionalBeat: emotionalMatch?.[1]?.trim() ?? "",
+            hookType: hookMatch?.[1]?.trim() ?? "",
+          });
+        }
+      }
+      current = { number: parseInt(match[1]), lines: [] };
+    } else if (current) {
+      current.lines.push(line);
+    }
+  }
+  if (current) {
+    const body = current.lines.join("\n").trim();
+    if (body) {
+      const emotionalMatch = body.match(/emotional\s*beat\s*[:\-]\s*(.+)/i);
+      const hookMatch = body.match(/hook\s*[:\-]\s*(.+)/i);
+      const sceneSummary = body
+        .replace(/emotional\s*beat\s*[:\-]\s*.+/i, "")
+        .replace(/hook\s*[:\-]\s*.+/i, "")
+        .trim();
+      outlines.push({
+        chapterNumber: current.number,
+        sceneSummary: sceneSummary || body,
+        emotionalBeat: emotionalMatch?.[1]?.trim() ?? "",
+        hookType: hookMatch?.[1]?.trim() ?? "",
+      });
+    }
+  }
+  return outlines;
+}
 
 function parseExistingChapters(text: string): Array<{ chapterNumber: number; content: string; wordCount: number }> {
   const lines = text.split("\n");
@@ -84,14 +135,29 @@ export const storiesRouter = router({
   create: publicProcedure
     .input(StoryCreateInput)
     .mutation(async ({ ctx, input }) => {
-      const { existingOutline, existingChapters, ...storyData } = input;
-      // Use outline as synopsis if no synopsis provided
+      const { existingOutline, existingChapters, chapterByChapterOutline, ...storyData } = input;
       if (!storyData.synopsis && existingOutline) storyData.synopsis = existingOutline;
 
       const story = await ctx.prisma.story.create({
         data: storyData,
         include: { platform: true },
       });
+
+      // Create chapter-by-chapter outlines
+      if (chapterByChapterOutline.trim()) {
+        const parsedOutlines = parseChapterOutlines(chapterByChapterOutline);
+        if (parsedOutlines.length > 0) {
+          await ctx.prisma.chapterOutline.createMany({
+            data: parsedOutlines.map((o) => ({
+              storyId: story.id,
+              chapterNumber: o.chapterNumber,
+              sceneSummary: o.sceneSummary,
+              emotionalBeat: o.emotionalBeat,
+              hookType: o.hookType,
+            })),
+          });
+        }
+      }
 
       // Parse and create any pasted existing chapters
       if (existingChapters.trim()) {

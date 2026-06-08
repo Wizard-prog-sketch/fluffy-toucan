@@ -13,6 +13,8 @@ export default function NewStoryPage() {
   const [existingOutline, setExistingOutline] = useState("");
   const [hasExistingChapters, setHasExistingChapters] = useState(false);
   const [existingChapters, setExistingChapters] = useState("");
+  const [hasChapterOutlines, setHasChapterOutlines] = useState(false);
+  const [chapterByChapterOutline, setChapterByChapterOutline] = useState("");
 
   const { data: platforms } = trpc.platforms.list.useQuery();
   const create = trpc.stories.create.useMutation({
@@ -71,7 +73,7 @@ export default function NewStoryPage() {
         className="space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
-          create.mutate({ ...form, writerMode, existingOutline, existingChapters: hasExistingChapters ? existingChapters : "" });
+          create.mutate({ ...form, writerMode, existingOutline, existingChapters: hasExistingChapters ? existingChapters : "", chapterByChapterOutline: hasChapterOutlines ? chapterByChapterOutline : "" });
         }}
       >
         <div className="space-y-1.5">
@@ -195,6 +197,42 @@ export default function NewStoryPage() {
                   <p className="text-xs text-gray-600">
                     Each chapter must start with <span className="text-gray-400">Chapter N</span> on its own line. All pasted chapters will be marked as approved and the platform will continue from the next chapter.
                   </p>
+                </div>
+              )}
+            </div>
+
+            {/* Chapter-by-chapter outline toggle */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setHasChapterOutlines(!hasChapterOutlines)}
+                className={`flex items-center gap-3 w-full p-4 rounded-xl border transition-all text-left ${hasChapterOutlines ? "border-violet-600 bg-violet-950/30" : "border-gray-700 bg-gray-900 hover:border-gray-600"}`}
+              >
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${hasChapterOutlines ? "border-violet-500 bg-violet-500" : "border-gray-600"}`}>
+                  {hasChapterOutlines && <span className="text-white text-xs">✓</span>}
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">I have a chapter-by-chapter outline</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Paste each chapter's plan — the AI reads it before writing that chapter so it follows your exact vision</div>
+                </div>
+              </button>
+
+              {hasChapterOutlines && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-300">Chapter-by-Chapter Outline</label>
+                  <textarea
+                    rows={14}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-violet-500 focus:outline-none text-white placeholder-gray-500 resize-none text-sm leading-relaxed"
+                    placeholder={`Write each chapter plan starting with "Chapter N" on its own line.\nYou can optionally add Emotional Beat and Hook lines.\n\nChapter 1\nElena arrives at her office to find a stranger sitting at her desk during a board meeting she was never invited to. She realizes she's being replaced.\nEmotional Beat: Shock turns to quiet rage\nHook: She recognizes the new hire — it's her ex.\n\nChapter 2\nElena confronts her boss in private. He confirms the transition. She refuses to go quietly.\nEmotional Beat: Humiliation becomes determination\n\nChapter 3\nShe begins building her case for wrongful dismissal while pretending everything is normal.`}
+                    value={chapterByChapterOutline}
+                    onChange={(e) => setChapterByChapterOutline(e.target.value)}
+                  />
+                  <div className="rounded-lg bg-gray-800/50 border border-gray-700 p-3 space-y-1">
+                    <p className="text-xs text-gray-400 font-medium">Supported fields per chapter:</p>
+                    <p className="text-xs text-gray-500"><span className="text-gray-300">Chapter N</span> — required, starts each entry</p>
+                    <p className="text-xs text-gray-500"><span className="text-gray-300">Emotional Beat: ...</span> — optional, what the reader must feel</p>
+                    <p className="text-xs text-gray-500"><span className="text-gray-300">Hook: ...</span> — optional, how the chapter should end</p>
+                  </div>
                 </div>
               )}
             </div>
