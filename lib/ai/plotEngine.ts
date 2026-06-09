@@ -112,7 +112,7 @@ export async function generateChapterOutlines(
   const isOpeningRange = arc.startChapter <= 5;
 
   const msg = await ai.messages.create({
-    model: "claude-sonnet-4-6",
+    model: "claude-opus-4-8",
     max_tokens: 12000,
     system: `You are a premium serialized fiction story planner for ${platform.name}.
 
