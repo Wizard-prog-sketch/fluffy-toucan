@@ -18,7 +18,7 @@ export async function generateIdeas(
   const ai = getAI();
 
   const message = await ai.messages.create({
-    model: "claude-opus-4-8",
+    model: "claude-sonnet-4-6",
     max_tokens: 4000,
     system: `You are a premium serialized fiction concept developer who has launched multiple top-performing stories on ${platform.name}.
 

@@ -37,7 +37,7 @@ export async function streamTranslation(
   let translated = "";
 
   const stream = ai.messages.stream({
-    model: "claude-opus-4-8",
+    model: "claude-sonnet-4-6",
     max_tokens: 8192,
     messages: [{ role: "user", content: prompt }],
   });

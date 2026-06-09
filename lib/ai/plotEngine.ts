@@ -29,7 +29,7 @@ export async function generateArcStructure(
   const ai = getAI();
 
   const msg = await ai.messages.create({
-    model: "claude-opus-4-8",
+    model: "claude-sonnet-4-6",
     max_tokens: 5000,
     system: `You are a master story architect for ${platform.name} premium serialized fiction.
 
@@ -112,7 +112,7 @@ export async function generateChapterOutlines(
   const isOpeningRange = arc.startChapter <= 5;
 
   const msg = await ai.messages.create({
-    model: "claude-opus-4-8",
+    model: "claude-sonnet-4-6",
     max_tokens: 12000,
     system: `You are a premium serialized fiction story planner for ${platform.name}.
 
@@ -206,7 +206,7 @@ export async function analyzeExistingOutline(
   const ai = getAI();
 
   const msg = await ai.messages.create({
-    model: "claude-opus-4-8",
+    model: "claude-sonnet-4-6",
     max_tokens: 4000,
     system: `You are a senior developmental editor who has worked on the top-performing serialized fiction on ${platform.name}.
 

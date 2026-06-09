@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const ai = getAI();
   const msg = await ai.messages.create({
-    model: "claude-opus-4-8",
+    model: "claude-sonnet-4-6",
     max_tokens: 2000,
     system: `You are a publishing consultant specializing in ${story.platform.name} serialized fiction. You write submission packages that perform well on the platform's discovery and search systems.`,
     messages: [{
